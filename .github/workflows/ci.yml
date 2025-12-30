@@ -1,0 +1,163 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
+    
+    - name: Lint with flake8
+      run: |
+        flake8 gophish tests --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 gophish tests --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+    
+    - name: Format check with black
+      run: |
+        black --check --diff gophish tests
+    
+    - name: Type check with mypy
+      run: |
+        mypy gophish --ignore-missing-imports
+      continue-on-error: true  # Allow mypy to fail initially during modernization
+    
+    - name: Security check with bandit
+      run: |
+        bandit -r gophish -f json -o bandit-report.json
+        bandit -r gophish
+      continue-on-error: true  # Allow bandit to fail initially during modernization
+    
+    - name: Test with pytest
+      run: |
+        pytest tests/ -v --cov=gophish --cov-report=xml --cov-report=term-missing
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[security]
+    
+    - name: Run safety check
+      run: |
+        safety check --json --output safety-report.json
+        safety check
+      continue-on-error: true  # Allow safety to fail initially during modernization
+    
+    - name: Run bandit security scan
+      run: |
+        bandit -r gophish -f json -o bandit-security-report.json
+        bandit -r gophish
+      continue-on-error: true  # Allow bandit to fail initially during modernization
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          safety-report.json
+          bandit-security-report.json
+
+  package-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.12"]  # Test oldest and newest supported versions
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+    
+    - name: Build package
+      run: |
+        python -m build
+    
+    - name: Check package
+      run: |
+        twine check dist/*
+    
+    - name: Test package installation
+      run: |
+        pip install dist/*.whl
+        python -c "import gophish; print('Package installed successfully')"
+        python -c "from gophish import Gophish; client = Gophish('test'); print('Client created successfully')"
+
+  compatibility-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[test]
+    
+    - name: Test backward compatibility
+      run: |
+        pytest tests/test_project_structure.py -v
+        pytest tests/test_python_compatibility.py -v
+    
+    - name: Test package metadata
+      run: |
+        pytest tests/test_package_metadata.py -v
+        pytest tests/test_version_constraints.py -v
+    
+    - name: Test dependency security
+      run: |
+        pytest tests/test_dependency_security.py -v

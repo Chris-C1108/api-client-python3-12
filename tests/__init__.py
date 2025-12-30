@@ -1,0 +1,1 @@
+# Tests for Gophish Python API Client

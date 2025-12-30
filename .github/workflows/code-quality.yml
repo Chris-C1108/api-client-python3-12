@@ -1,0 +1,90 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[lint]
+    
+    - name: Run black
+      run: |
+        black --check --diff gophish tests
+    
+    - name: Run flake8
+      run: |
+        flake8 gophish tests
+    
+    - name: Run mypy
+      run: |
+        mypy gophish --ignore-missing-imports
+      continue-on-error: true  # Allow mypy to fail initially during modernization
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[security]
+    
+    - name: Run bandit
+      run: |
+        bandit -r gophish -ll
+    
+    - name: Run safety
+      run: |
+        safety check
+
+  dependency-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+    
+    - name: Check for outdated packages
+      run: |
+        pip list --outdated
+    
+    - name: Verify package installation
+      run: |
+        python -c "import gophish; print('✓ Package imports successfully')"
+        python -c "from gophish import Gophish; print('✓ Main class imports successfully')"
+        python -c "client = Gophish('test'); print('✓ Client instantiates successfully')"

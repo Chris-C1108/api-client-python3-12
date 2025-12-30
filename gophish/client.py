@@ -1,40 +1,34 @@
 import requests
 
-from gophish.api import (campaigns, groups, imap, pages, smtp, templates,
-                         webhooks)
+from gophish.api import campaigns, groups, imap, pages, smtp, templates, webhooks
 
-DEFAULT_URL = 'https://localhost:3333'
+DEFAULT_URL = "https://localhost:3333"
 
 
-class GophishClient(object):
-    """ A standard HTTP REST client used by Gophish """
+class GophishClient:
+    """A standard HTTP REST client used by Gophish"""
+
     def __init__(self, api_key, host=DEFAULT_URL, **kwargs):
         self.api_key = api_key
-        if host.endswith('/'):
+        if host.endswith("/"):
             self.host = host
         else:
-            self.host = host + '/'
+            self.host = host + "/"
         self._client_kwargs = kwargs
 
     def execute(self, method, path, **kwargs):
-        """ Executes a request to a given endpoint, returning the result """
+        """Executes a request to a given endpoint, returning the result"""
 
-        url = "{}{}".format(self.host, path)
+        url = f"{self.host}{path}"
         kwargs.update(self._client_kwargs)
         response = requests.request(
-            method,
-            url,
-            headers={"Authorization": "Bearer {}".format(self.api_key)},
-            **kwargs)
+            method, url, headers={"Authorization": f"Bearer {self.api_key}"}, **kwargs
+        )
         return response
 
 
-class Gophish(object):
-    def __init__(self,
-                 api_key,
-                 host=DEFAULT_URL,
-                 client=GophishClient,
-                 **kwargs):
+class Gophish:
+    def __init__(self, api_key, host=DEFAULT_URL, client=GophishClient, **kwargs):
         self.client = client(api_key, host=host, **kwargs)
         self.campaigns = campaigns.API(self.client)
         self.groups = groups.API(self.client)
