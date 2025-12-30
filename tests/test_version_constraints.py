@@ -62,7 +62,7 @@ class TestVersionConstraintEnforcement:
         ), f"Current Python {current_version} is below minimum requirement 3.8"
 
         # Should be within supported range (3.8-3.12)
-        assert current_version <= (
+        assert current_version[:2] <= (
             3,
             12,
         ), f"Current Python {current_version} is above tested range 3.12"
@@ -258,8 +258,7 @@ class TestVersionConstraintEnforcement:
         st.text(
             min_size=1,
             max_size=20,
-            alphabet=st.characters(min_codepoint=48, max_codepoint=57)
-            | {".", ">", "=", "<", ","},
+            alphabet="0123456789.>=<,",
         )
     )
     def test_version_string_parsing_property(self, version_string: str):

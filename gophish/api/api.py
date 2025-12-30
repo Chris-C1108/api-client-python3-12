@@ -1,3 +1,4 @@
+import requests
 from gophish.models import Error
 
 """
@@ -59,7 +60,18 @@ class APIEndpoint:
         if resource_action:
             endpoint = self._build_url(endpoint, resource_action)
 
-        response = self.api.execute(method, endpoint, json=body)
+        try:
+            response = self.api.execute(method, endpoint, json=body)
+        except requests.exceptions.ConnectionError as e:
+            # 网络连接错误 - 重新抛出为标准异常以便重试机制处理
+            raise ConnectionError(f"Failed to connect to Gophish server: {e}")
+        except requests.exceptions.Timeout as e:
+            # 超时错误 - 重新抛出为标准异常以便重试机制处理
+            raise TimeoutError(f"Request to Gophish server timed out: {e}")
+        except requests.exceptions.RequestException as e:
+            # 其他请求异常
+            raise Exception(f"Request failed: {e}")
+
         if not response.ok:
             raise Error.parse(response.json())
 
@@ -106,7 +118,19 @@ class APIEndpoint:
             resource - gophish.models.Model - The resource instance
 
         """
-        response = self.api.execute("POST", self.endpoint, json=(resource.as_dict()))
+        try:
+            response = self.api.execute(
+                "POST", self.endpoint, json=(resource.as_dict())
+            )
+        except requests.exceptions.ConnectionError as e:
+            # 网络连接错误 - 重新抛出为标准异常以便重试机制处理
+            raise ConnectionError(f"Failed to connect to Gophish server: {e}")
+        except requests.exceptions.Timeout as e:
+            # 超时错误 - 重新抛出为标准异常以便重试机制处理
+            raise TimeoutError(f"Request to Gophish server timed out: {e}")
+        except requests.exceptions.RequestException as e:
+            # 其他请求异常
+            raise Exception(f"Request failed: {e}")
 
         if not response.ok:
             raise Error.parse(response.json())
@@ -125,7 +149,17 @@ class APIEndpoint:
         if resource.id:
             endpoint = self._build_url(endpoint, resource.id)
 
-        response = self.api.execute("PUT", endpoint, json=resource.as_dict())
+        try:
+            response = self.api.execute("PUT", endpoint, json=resource.as_dict())
+        except requests.exceptions.ConnectionError as e:
+            # 网络连接错误 - 重新抛出为标准异常以便重试机制处理
+            raise ConnectionError(f"Failed to connect to Gophish server: {e}")
+        except requests.exceptions.Timeout as e:
+            # 超时错误 - 重新抛出为标准异常以便重试机制处理
+            raise TimeoutError(f"Request to Gophish server timed out: {e}")
+        except requests.exceptions.RequestException as e:
+            # 其他请求异常
+            raise Exception(f"Request failed: {e}")
 
         if not response.ok:
             raise Error.parse(response.json())
@@ -141,7 +175,17 @@ class APIEndpoint:
 
         endpoint = f"{self.endpoint}/{resource_id}"
 
-        response = self.api.execute("DELETE", endpoint)
+        try:
+            response = self.api.execute("DELETE", endpoint)
+        except requests.exceptions.ConnectionError as e:
+            # 网络连接错误 - 重新抛出为标准异常以便重试机制处理
+            raise ConnectionError(f"Failed to connect to Gophish server: {e}")
+        except requests.exceptions.Timeout as e:
+            # 超时错误 - 重新抛出为标准异常以便重试机制处理
+            raise TimeoutError(f"Request to Gophish server timed out: {e}")
+        except requests.exceptions.RequestException as e:
+            # 其他请求异常
+            raise Exception(f"Request failed: {e}")
 
         if not response.ok:
             raise Error.parse(response.json())

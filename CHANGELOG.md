@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2024-12-30
+
+### 🔧 Bug Fixes
+- **Network Exception Handling**: Added proper handling for network layer exceptions (ConnectionError, TimeoutError)
+- **Retry Compatibility**: Network exceptions are now converted to standard exception types for better retry mechanism compatibility
+- **Error Messages**: Improved error messages with more descriptive information for debugging
+
+### 🧪 Testing
+- Added comprehensive test suite for network exception handling
+- Added demonstration script showing retry mechanism compatibility
+- Fixed Hypothesis strategy syntax in version constraint tests
+- Added PyYAML dependency for CI pipeline tests
+
+### 📦 Dependencies
+- Added `pyyaml>=6.0.0` for CI/CD pipeline testing
+
+### 🛠 Technical Improvements
+- All CRUD operations (GET, POST, PUT, DELETE) now properly handle network exceptions
+- Exceptions are caught at the API layer and re-raised as standard Python exceptions
+- Maintains backward compatibility while improving reliability
+
 ## [1.0.0] - 2024-12-30
 
 ### 🚀 Major Changes
